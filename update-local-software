@@ -1,0 +1,235 @@
+#!/usr/local/bin/scsh \
+-o srfi-2 -o srfi-9 -o srfi-13 -e main -s
+!#
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+;;; This script updates local copies of useful software that I keep
+;;; installed on my laptop.  It relies on access to a script called
+;;; `list-makefile-targets`, which has the following definition:
+;;;
+;;;     make -pn | perl -F: -ane 'print "$F[0]\n" if /^\w+\s*:/' \
+;;;              | sort | uniq
+;;;
+;;; It would not be difficult to write this as a function within scsh,
+;;; but I have it as an external script because I also use it for
+;;; other purposes.
+;;; 
+;;; This script also assumes access to Git and GNU Make.
+;;;
+;;; Command-line flags:
+;;;
+;;; * --update-only: Will fetch updates to software but will not build
+;;; or install any of them.
+;;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (main arguments)
+  (cond ((running-as-root?)
+         (display "Error: Cannot run as root")
+         (exit 1)))
+  (for-each
+   (lambda (software)
+     (display (string-append "\nProcessing " (get-directory software) "\n\n"))
+     (update software)
+     (if (not (member "--update-only" (command-line)))
+         (begin
+           (build software)
+           (install software))))
+   important-software)
+  (exit 0))
+
+;;; Represents a single program to update.  Each instance has the
+;;; following properties:
+;;;
+;;; * directory: The absolute path to the software.
+;;;
+;;; * install-prefix: The path prefix to use when installing the
+;;; program, e.g. the value to give to `./configure --prefix=...`
+;;;
+;;; * update-function: This property is optional.  If set it must be a
+;;; function which accepts one argument, the software record itself.
+;;; The function should run any commands necessary to fetch all
+;;; updates for that software, e.g. running `git fetch` on a remote
+;;; other than `origin`.
+;;;
+;;; * build-function: This property is optional.  If set it must be a
+;;; function which accepts one argument, which will be the software
+;;; record itself.  The function should run all commands necessary to
+;;; build the software.  The function does NOT need to update the
+;;; software, e.g. fetch updates from a Git repository.
+;;;
+;;; * install-function: Another optional property, and again if
+;;; provided it must be a function that accepts the software record as
+;;; its one argument.  The function should run any commands necessary
+;;; to install the software, under the assumption that the software
+;;; has already been updated and built.
+;;;
+;;; Only the first property is mandatory.  Any properties that
+;;; represent a file-path MUST NOT end with a slash, because many
+;;; functions append one when working with directories.
+;;;
+;;; All of the optional `*-function` properties will be run in the
+;;; context of
+;;;
+;;;     (with-cwd (get-directory software) ...)
+;;;
+;;; so it is not necessary to set the current working directory in
+;;; those functions unless it needs to be different from the value of
+;;; the software's `directory` property.
+(define-record-type :software
+  (new-software directory install-prefix)
+  software?
+  (directory get-directory)
+  (install-prefix get-install-prefix)
+  (update-function get-update-function set-update-function!)
+  (build-function get-build-function set-build-function!)
+  (install-function get-install-function set-install-function!))
+
+;;; A list of the software I want this script to process.
+(define important-software
+  (map (lambda (name)
+         (new-software (string-append "/home/eric/Software/" name)
+                       "/usr/local"))
+       (list "Emacs"
+             "Fish"
+             "Git"
+             "LuaJIT"
+             "scsh"
+             "Solid")))
+
+;;; Add software to update but which requires special steps that
+;;; differ from the default behavior of the `update`, `build`, and
+;;; `install` functions.
+(let ((php (new-software "/home/eric/Software/PHP" "/opt/php"))
+      (tup (new-software "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
+      (tig (new-software "/home/eric/Software/Tig" "/usr/local"))
+      (conkeror (new-software "/home/eric/Software/Conkeror" "/home/eric/Software/Conkeror")))
+
+  ;; Building PHP requires giving some additional parameters to its
+  ;; configure script.
+  (set-build-function! php
+   (lambda (software)
+     (run (./configure --prefix=,(get-install-prefix software)
+                       --with-openssl))))
+
+  ;; Tup can build itself by running 'tup upd' after fetching the
+  ;; source via Git.  The custom installation function does nothing
+  ;; since I do not actually install Tup anywhere.  Instead the
+  ;; directory containing the program is in the $PATH for my shell.
+  (set-build-function!   tup (lambda (software) (run (tup upd))))
+  (set-install-function! tup (lambda (software) #t))
+
+  ;; Running `configure` is not part of building Tig.  The usual
+  ;; --prefix parameter instead is given to Make for both building and
+  ;; installing the program.
+  (set-build-function! tig
+   (lambda (software)
+     (run (make prefix=,(get-install-prefix software)))))
+  (set-install-function! tig
+   (lambda (software)
+     (run (sudo make install prefix=,(get-install-prefix software)))))
+
+  ;; Fetching updates from Conkeror's Git repository is the only step
+  ;; necessary, so its build and install functions are no-ops.
+  (set-build-function!   conkeror (lambda (software) #t))
+  (set-install-function! conkeror (lambda (software) #t))
+  
+  (set! important-software
+    (append important-software
+            (list php
+                  tup
+                  tig
+                  conkeror))))
+
+;;; If `id -u` returns zero that means we're running as root.
+(define (running-as-root?)
+  (equal? 0 (run/sexp (id -u))))
+
+;;; This predicate fails for software that's in a bare repository but
+;;; right now I don't need to update any such repositories.
+(define (git-repository? software)
+  (file-directory? (string-append (get-directory software) "/.git")))
+
+;;; If the software is in a Git repository then this function will
+;;; normally perform the following:
+;;;
+;;; 1. Fetch updates from 'origin'.
+;;;
+;;; 2. Checkout the 'master' branch.
+;;;
+;;; 3. Fast-forward merge 'master' with 'origin/master'.
+;;;
+;;; This process makes the assumption that 'master' is a valid branch
+;;; in the software's repository.
+;;;
+;;; However, if the software has the `update-function` property set
+;;; then this function will call that instead of performing any of the
+;;; actions described above.
+(define (update software)
+  (with-cwd (get-directory software)
+   (or (and-let* ((update-function (get-update-function software))
+                  ((procedure? update-function))
+                  ((apply update-function (list software)))))
+       (begin
+         (run (git fetch origin))
+         (run (git checkout master))
+         (run (git merge --ff-only origin/master))))))
+
+;;; Does the software have a 'configure' script?
+(define (has-configure-script? software)
+  (file-exists? (string-append (git-directory software) "/configure")))
+
+;;; Does the software have a Makefile?
+(define (has-makefile? software)
+  (file-exists? (string-append (get-directory software) "/Makefile")))
+
+;;; Returns a list of strings naming all of the targets of the
+;;; Makefile for the given software.  This function relies on an
+;;; external script, `list-makefile-targets`, which is described in
+;;; the comment block at the head of this file.
+(define (makefile-targets software)
+  (with-cwd (get-directory software)
+            (run/strings (list-makefile-targets ,(get-directory software)))))
+
+;;; Runs the common "./configure && make" sequence that is typical for
+;;; building software on Linux.  Note that this function DOES NOT run
+;;; 'make install', so installation must be handled elsewhere.
+;;;
+;;; If the Makefile has a 'docs' target then this function runs it.
+(define (configure-and-make software)
+  (if (has-configure-script? software)
+      (run (configure --prefix=,(get-install-prefix software))))
+  (if (has-makefile? software)
+      (begin
+        (run (make))
+        (let ((targets (makefile-targets software)))
+          (if (member "docs" targets)
+              (run (make docs)))))))
+
+;;; Builds the software.  If the software has the property
+;;; `build-function` then that will be called.  Otherwise this
+;;; function attempts to build the software via `configure-and-make`.
+(define (build software)
+  (with-cwd (get-directory software)
+   (or (and-let* ((build-function (get-build-function software))
+                  ((procedure? build-function))
+                  ((apply build-function (list software)))))
+       (configure-and-make software))))
+
+;;; Installs software.  If the software has a procedure value for the
+;;; `install-function` property then it will be called.  Otherwise
+;;; this function runs 'sudo make install'.
+(define (install software)
+  (with-cwd (get-directory software)
+   (or (and-let* ((install-function (get-install-function software))
+                  ((procedure? install-function))
+                  ((apply install-function (list software)))))
+       (let ((targets (makefile-targets software)))
+         (run (sudo make install))
+         (if (member "install-docs" targets)
+             (run (sudo make install-docs)))))))
+
+;; Local Variables:
+;; mode: scheme
+;; End:
