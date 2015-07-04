@@ -143,6 +143,18 @@
 (define software-to-update-only
   (append
    (list (new-software "/home/eric/Documents/Programming/Awesome" ""))
+
+   ;; Hypatia is slightly different in that I want to always update
+   ;; based on the 'develop' branch instead of 'master'.
+   (list (let ((hypatia (new-software "/home/eric/Projects/Hypatia" "")))
+           (set-update-function! hypatia
+            (lambda (software)
+              (run (git fetch origin))
+              (run (git checkout develop))
+              (run (git merge --ff-only origin/develop))))
+           hypatia))
+
+   ;; Everything else is in /home/eric/Software
    (map (lambda (name)
           (new-software (string-append "/home/eric/Software/" name "")))
         (list "Conkeror"
