@@ -11,6 +11,11 @@ useful, but because I want to demonstrate how [Scheme][] is a viable
 programming language for shell scripting.
 
 
+## Resources
+
+[Collection of Links Related to Scheme Shell](https://www.reddit.com/r/scheme/comments/3as8yr/scsh_collection_of_links_related_to_the_scheme/)
+
+
 ## License
 
 This script belongs to the Public Domain.
