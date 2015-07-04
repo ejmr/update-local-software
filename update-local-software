@@ -81,9 +81,9 @@
   (new-software directory install-prefix)
   software?
   (directory get-directory)
-  (install-prefix get-install-prefix)
-  (update-function get-update-function set-update-function!)
-  (build-function get-build-function set-build-function!)
+  (install-prefix   get-install-prefix)
+  (update-function  get-update-function  set-update-function!)
+  (build-function   get-build-function   set-build-function!)
   (install-function get-install-function set-install-function!))
 
 ;;; A list of the software I want this script to process.
