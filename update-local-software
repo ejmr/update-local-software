@@ -104,6 +104,7 @@
 (let ((php (new-software "/home/eric/Software/PHP" "/opt/php"))
       (tup (new-software "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
       (tig (new-software "/home/eric/Software/Tig" "/usr/local"))
+      (awesome (new-software "/home/eric/Documents/Programming/Awesome" "/home/eric/Documents/Programming/Awesome"))
       (conkeror (new-software "/home/eric/Software/Conkeror" "/home/eric/Software/Conkeror")))
 
   ;; Building PHP requires giving some additional parameters to its
@@ -130,6 +131,12 @@
    (lambda (software)
      (run (sudo make install prefix=,(get-install-prefix software)))))
 
+  ;; The `build` and `install` functions don't need to do anything for
+  ;; the "Awesome" repository.  Just fetching new commits and updating
+  ;; its 'master' branch is sufficient.
+  (set-build-function!   awesome (lambda (software) #t))
+  (set-install-function! awesome (lambda (software) #t))
+
   ;; Fetching updates from Conkeror's Git repository is the only step
   ;; necessary, so its build and install functions are no-ops.
   (set-build-function!   conkeror (lambda (software) #t))
@@ -140,6 +147,7 @@
             (list php
                   tup
                   tig
+                  awesome
                   conkeror))))
 
 ;;; If `id -u` returns zero that means we're running as root.
