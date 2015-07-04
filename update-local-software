@@ -37,6 +37,7 @@
            (build software)
            (install software))))
    important-software)
+  (for-each update software-to-update-only)
   (exit 0))
 
 ;;; Represents a single program to update.  Each instance has the
@@ -103,9 +104,7 @@
 ;;; `install` functions.
 (let ((php (new-software "/home/eric/Software/PHP" "/opt/php"))
       (tup (new-software "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
-      (tig (new-software "/home/eric/Software/Tig" "/usr/local"))
-      (awesome (new-software "/home/eric/Documents/Programming/Awesome" "/home/eric/Documents/Programming/Awesome"))
-      (conkeror (new-software "/home/eric/Software/Conkeror" "/home/eric/Software/Conkeror")))
+      (tig (new-software "/home/eric/Software/Tig" "/usr/local")))
 
   ;; Building PHP requires giving some additional parameters to its
   ;; configure script.
@@ -131,24 +130,26 @@
    (lambda (software)
      (run (sudo make install prefix=,(get-install-prefix software)))))
 
-  ;; The `build` and `install` functions don't need to do anything for
-  ;; the "Awesome" repository.  Just fetching new commits and updating
-  ;; its 'master' branch is sufficient.
-  (set-build-function!   awesome (lambda (software) #t))
-  (set-install-function! awesome (lambda (software) #t))
-
-  ;; Fetching updates from Conkeror's Git repository is the only step
-  ;; necessary, so its build and install functions are no-ops.
-  (set-build-function!   conkeror (lambda (software) #t))
-  (set-install-function! conkeror (lambda (software) #t))
-  
   (set! important-software
     (append important-software
             (list php
                   tup
-                  tig
-                  awesome
-                  conkeror))))
+                  tig))))
+
+;;; This list contains software which I only ever want to update.
+;;; That is, I never want to run `build` or `install` for these
+;;; programs.  I am only interested in keeping my copies of their
+;;; repositories up to date.
+(define software-to-update-only
+  (append
+   (list (new-software "/home/eric/Documents/Programming/Awesome" ""))
+   (map (lambda (name)
+          (new-software (string-append "/home/eric/Software/" name "")))
+        (list "Conkeror"
+              "Guile"
+              "Guix"
+              "MAME"
+              "SQLite"))))
 
 ;;; If `id -u` returns zero that means we're running as root.
 (define (running-as-root?)
