@@ -159,6 +159,7 @@
               "Guile"
               "Guix"
               "MAME"
+              "Perl"
               "SQLite"))))
 
 ;;; If `id -u` returns zero that means we're running as root.
