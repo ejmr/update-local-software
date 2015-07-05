@@ -208,7 +208,7 @@
 
 ;;; Does the software have a 'configure' script?
 (define (has-configure-script? software)
-  (file-exists? (string-append (git-directory software) "/configure")))
+  (file-exists? (string-append (get-directory software) "/configure")))
 
 ;;; Does the software have a Makefile?
 (define (has-makefile? software)
