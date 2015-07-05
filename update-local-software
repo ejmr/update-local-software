@@ -1,5 +1,5 @@
 #!/usr/local/bin/scsh \
--o srfi-2 -o srfi-9 -o srfi-13 -o srfi-16 -e main -s
+-o srfi-2 -o srfi-9 -o srfi-13 -o srfi-16 -o srfi-37 -e main -s
 !#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -28,6 +28,12 @@
   (cond ((running-as-root?)
          (display "Error: Cannot run as root")
          (exit 1)))
+  (args-fold command-line-arguments
+             flags
+             (lambda (option name value . rest)
+               (error "Unrecognized option" name)
+               (exit 22))
+             no-op)
   (for-each
    (lambda (software)
      (display (string-append "\nProcessing " (get-directory software) "\n\n"))
@@ -39,6 +45,15 @@
    important-software)
   (for-each update software-to-update-only)
   (exit 0))
+
+;;; A simple function for convenience which accepts any number of
+;;; arguments but does nothing.  All calls return `#t`.
+(define no-op (lambda (value . rest) #t))
+
+;;; A list of acceptable command-line flags.  See the comment block at
+;;; the head of this file for a description of each flag.
+(define flags
+  (list (option '("update-only") #f #f no-op)))
 
 ;;; Represents a single program to update.  Each instance has the
 ;;; following properties:
