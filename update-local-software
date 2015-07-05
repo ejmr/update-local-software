@@ -17,12 +17,12 @@
 ;;; 
 ;;; This script also assumes access to Git and GNU Make.
 ;;;
-;;; Command-line flags:
-;;;
-;;; * --update-only: Will fetch updates to software but will not build
-;;; or install any of them.
+;;; Run the program with the -h or --help option to see all of the
+;;; available command-line flags and arguments.
 ;;; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define version "1.0.0")
 
 (define (main arguments)
   (cond ((running-as-root?)
@@ -46,6 +46,17 @@
   (for-each update software-to-update-only)
   (exit 0))
 
+;;; The string we display when using the -h/--help flag.
+(define help-string #<<HELP
+Usage: update-local-software [OPTIONS]
+
+-h  --help        Shows this information.
+-v  --version     Shows the current version.
+--update-only     Updates the repositories for all software
+                    but does not build or install anything.
+HELP
+)
+
 ;;; A simple function for convenience which accepts any number of
 ;;; arguments but does nothing.  All calls return `#t`.
 (define no-op (lambda (value . rest) #t))
@@ -53,7 +64,15 @@
 ;;; A list of acceptable command-line flags.  See the comment block at
 ;;; the head of this file for a description of each flag.
 (define flags
-  (list (option '("update-only") #f #f no-op)))
+  (list (option '("update-only") #f #f no-op)
+        (option '(#\h "help") #f #f
+                (lambda (option name value . rest)
+                  (display help-string)
+                  (exit 0)))
+        (option '(#\v "version") #f #f
+                (lambda (option name value . rest)
+                  (display version)
+                  (exit 0)))))
 
 ;;; Represents a single program to update.  Each instance has the
 ;;; following properties:
