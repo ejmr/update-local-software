@@ -1,5 +1,5 @@
 #!/usr/local/bin/scsh \
--o srfi-2 -o srfi-9 -o srfi-13 -e main -s
+-o srfi-2 -o srfi-9 -o srfi-13 -o srfi-16 -e main -s
 !#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -149,9 +149,7 @@
    (list (let ((hypatia (new-software "/home/eric/Projects/Hypatia" "")))
            (set-update-function! hypatia
             (lambda (software)
-              (run (git fetch origin))
-              (run (git checkout develop))
-              (run (git merge --ff-only origin/develop))))
+              (git-update "origin" "develop")))
            hypatia))
 
    ;; Everything else is in /home/eric/Software
@@ -172,17 +170,31 @@
 (define (git-repository? software)
   (file-directory? (string-append (get-directory software) "/.git")))
 
+;;; This function updates a Git repository by performing the following
+;;; steps:
+;;;
+;;; 1. git fetch <remote>
+;;;
+;;; 2. git checkout <branch>
+;;;
+;;; 3. git merge --ff-only <remote>/<branch>
+;;;
+;;; Both arguments are optional, and default to "origin" and "master"
+;;; respectively.  This function assumes that the current working
+;;; directory is a Git repository, i.e. within the context of an
+;;; appropriate `(with-cwd ...)` expression.
+(define git-update
+  (case-lambda
+    (()       (git-update "origin" "master"))
+    ((remote) (git-update remote   "master"))
+    ((remote branch)
+     (run (git fetch ,remote))
+     (run (git checkout ,branch))
+     (run (git merge --ff-only ,(string-append remote "/" branch))))))
+
 ;;; If the software is in a Git repository then this function will
-;;; normally perform the following:
-;;;
-;;; 1. Fetch updates from 'origin'.
-;;;
-;;; 2. Checkout the 'master' branch.
-;;;
-;;; 3. Fast-forward merge 'master' with 'origin/master'.
-;;;
-;;; This process makes the assumption that 'master' is a valid branch
-;;; in the software's repository.
+;;; normally fetch updates from the 'origin' remote and merge them
+;;; into the 'master' branch.
 ;;;
 ;;; However, if the software has the `update-function` property set
 ;;; then this function will call that instead of performing any of the
@@ -192,10 +204,7 @@
    (or (and-let* ((update-function (get-update-function software))
                   ((procedure? update-function))
                   ((apply update-function (list software)))))
-       (begin
-         (run (git fetch origin))
-         (run (git checkout master))
-         (run (git merge --ff-only origin/master))))))
+       (git-update))))
 
 ;;; Does the software have a 'configure' script?
 (define (has-configure-script? software)
