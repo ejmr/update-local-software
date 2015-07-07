@@ -69,12 +69,20 @@
 (define help-string #<<HELP
 Usage: update-local-software [OPTIONS]
 
--h  --help        Shows this information.
--v  --version     Shows the current version.
---update-only     Updates the repositories for all software
-                    but does not build or install anything.
--s  --software    Updates, builds, and installs the software
-                    with the given name and then exits.
+-h, --help
+    Shows this information.
+    
+-v, --version
+    Shows the current version then exits.
+    
+--update-only
+    Updates the repositories for all software but does not build
+    or install anything.
+
+-s <name>, --software=<name>
+    Updates, builds, and installs the software with the given
+    name and then exits.
+
 HELP
 )
 
