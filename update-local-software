@@ -1,5 +1,5 @@
 #!/usr/local/bin/scsh \
--o srfi-2 -o srfi-9 -o srfi-13 -o srfi-16 -o srfi-37 -e main -s
+-o srfi-1 -o srfi-2 -o srfi-9 -o srfi-13 -o srfi-16 -o srfi-37 -e main -s
 !#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -139,6 +139,17 @@ HELP
   (update-function  get-update-function  set-update-function!)
   (build-function   get-build-function   set-build-function!)
   (install-function get-install-function set-install-function!))
+
+;;; This function searches from `software-to-process` to find an
+;;; instance of a :software record for the given software name.  The
+;;; search looks for software where the given `name` parameter is a
+;;; suffix of that software's `directory` property; the search is
+;;; case-insensitive.  The function will return a list containing the
+;;; matching software or nothing.
+(define (find-software name)
+  (filter (lambda (software)
+            (string-suffix-ci? name (get-directory software)))
+          software-to-process))
 
 ;;; This is a utility for creating a :software record representing a
 ;;; program which I only want to update.  I.e. it has no-op's for its
