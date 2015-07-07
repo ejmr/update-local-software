@@ -58,8 +58,7 @@
          (begin
            (build software)
            (install software))))
-   important-software)
-  (for-each update software-to-update-only)
+   software-to-process)
   (exit 0))
 
 ;;; The string we display when using the -h/--help flag.  This is an
@@ -141,74 +140,86 @@ HELP
   (build-function   get-build-function   set-build-function!)
   (install-function get-install-function set-install-function!))
 
+;;; This is a utility for creating a :software record representing a
+;;; program which I only want to update.  I.e. it has no-op's for its
+;;; `build` and `install` functions.
+(define (new-software-to-update-only directory)
+  (let ((software (new-software directory "")))
+    (set-build-function!   software no-op)
+    (set-install-function! software no-op)
+    software))
+
 ;;; A list of the software I want this script to process.
-(define important-software
-  (map (lambda (name)
-         (new-software (string-append "/home/eric/Software/" name)
-                       "/usr/local"))
-       (list "Emacs"
-             "Fish"
-             "Git"
-             "LuaJIT"
-             "scsh"
-             "Solid")))
-
-;;; Add software to update but which requires special steps that
-;;; differ from the default behavior of the `update`, `build`, and
-;;; `install` functions.
-(let ((php (new-software "/home/eric/Software/PHP" "/opt/php"))
-      (tup (new-software "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
-      (tig (new-software "/home/eric/Software/Tig" "/usr/local")))
-
-  ;; Building PHP requires giving some additional parameters to its
-  ;; configure script.
-  (set-build-function! php
-   (lambda (software)
-     (run (sh configure --prefix=,(get-install-prefix software)
-                        --with-openssl))))
-
-  ;; Tup can build itself by running 'tup upd' after fetching the
-  ;; source via Git.  The custom installation function does nothing
-  ;; since I do not actually install Tup anywhere.  Instead the
-  ;; directory containing the program is in the $PATH for my shell.
-  (set-build-function!   tup (lambda (software) (run (tup upd))))
-  (set-install-function! tup (lambda (software) #t))
-
-  ;; Running `configure` is not part of building Tig.  The usual
-  ;; --prefix parameter instead is given to Make for both building and
-  ;; installing the program.
-  (set-build-function! tig
-   (lambda (software)
-     (run (make prefix=,(get-install-prefix software)))))
-  (set-install-function! tig
-   (lambda (software)
-     (run (sudo make install prefix=,(get-install-prefix software)))))
-
-  (set! important-software
-    (append important-software
-            (list php
-                  tup
-                  tig))))
-
-;;; This list contains software which I only ever want to update.
-;;; That is, I never want to run `build` or `install` for these
-;;; programs.  I am only interested in keeping my copies of their
-;;; repositories up to date.
-(define software-to-update-only
+(define software-to-process
   (append
-   (list (new-software "/home/eric/Documents/Programming/Awesome" ""))
 
-   ;; Hypatia is slightly different in that I want to always update
-   ;; based on the 'develop' branch instead of 'master'.
-   (list (let ((hypatia (new-software "/home/eric/Projects/Hypatia" "")))
-           (set-update-function! hypatia
-            (lambda (software)
-              (git-update "origin" "develop")))
-           hypatia))
-
-   ;; Everything else is in /home/eric/Software
+   ;; This is software which uses the default behavior of `update`,
+   ;; `build`, and `install`.
    (map (lambda (name)
-          (new-software (string-append "/home/eric/Software/" name) ""))
+          (new-software (string-append "/home/eric/Software/" name)
+                        "/usr/local"))
+        (list "Emacs"
+              "Fish"
+              "Git"
+              "LuaJIT"
+              "scsh"
+              "Solid"))
+
+   ;; Add software to update but which requires special steps that
+   ;; differ from the default behavior of the `update`, `build`, and
+   ;; `install` functions.
+   (let ((php (new-software "/home/eric/Software/PHP" "/opt/php"))
+         (tup (new-software "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
+         (tig (new-software "/home/eric/Software/Tig" "/usr/local")))
+
+     ;; Building PHP requires giving some additional parameters to its
+     ;; configure script.
+     (set-build-function! php
+      (lambda (software)
+        (run (sh configure --prefix=,(get-install-prefix software)
+                           --with-openssl))))
+
+     ;; Tup can build itself by running 'tup upd' after fetching the
+     ;; source via Git.  The custom installation function does nothing
+     ;; since I do not actually install Tup anywhere.  Instead the
+     ;; directory containing the program is in the $PATH for my shell.
+     (set-build-function!   tup (lambda (software) (run (tup upd))))
+     (set-install-function! tup (lambda (software) #t))
+
+     ;; Running `configure` is not part of building Tig.  The usual
+     ;; --prefix parameter instead is given to Make for both building and
+     ;; installing the program.
+     (set-build-function! tig
+      (lambda (software)
+        (run (make prefix=,(get-install-prefix software)))))
+     (set-install-function! tig
+      (lambda (software)
+        (run (sudo make install prefix=,(get-install-prefix software)))))
+
+     (list php
+           tup
+           tig))
+
+   ;; This rest of this list contains software which I only ever want
+   ;; to update.  That is, I never want to run `build` or `install` for
+   ;; these programs.  I am only interested in keeping my copies of
+   ;; their repositories up to date.
+
+   (list (new-software-to-update-only "/home/eric/Documents/Programming/Awesome"))
+
+   ;; Hypatia is slightly different in that I want to always update the
+   ;; 'develop' branch instead of 'master'.
+   (let ((hypatia (new-software-to-update-only "/home/eric/Projects/Hypatia")))
+     (set-update-function! hypatia
+      (lambda (software)
+        (git-update "origin" "develop")))
+     (list hypatia))
+
+   ;; The rest of the software I want to only update is in my
+   ;; "/home/eric/Software" directory.
+   (map (lambda (name)
+          (new-software-to-update-only
+           (string-append "/home/eric/Software/" name)))
         (list "Conkeror"
               "Guile"
               "Guix"
