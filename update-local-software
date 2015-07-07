@@ -19,7 +19,21 @@
 ;;;
 ;;; Run the program with the -h or --help option to see all of the
 ;;; available command-line flags and arguments.
-;;; 
+;;;
+;;; Useful links for understanding this script:
+;;;
+;;;     * http://www.schemers.org/Documents/Standards/R5RS/HTML/
+;;;     * http://scsh.net/docu/html/man.html
+;;;     * http://scsh.net/docu/docu.html
+;;;     * http://srfi.schemers.org/
+;;;     * http://mazack.org/unix/errno.php
+;;;     * http://ericjmritz.name/2015/07/03/useful-srfis-for-scheme-programming/
+;;;     * http://ericjmritz.name/2015/07/05/writing-scheme-functions-with-optional-arguments/
+;;;
+;;; Author:         Eric James Michael Ritz <ejmr@plutono.com>
+;;; Project Site:   https://github.com/ejmr/update-local-software
+;;; License:        Public Domain
+;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define version "1.0.0")
@@ -27,11 +41,13 @@
 (define (main arguments)
   (cond ((running-as-root?)
          (display "Error: Cannot run as root")
+         ;; Unix errno code for: "Operation not permitted"
          (exit 1)))
   (args-fold command-line-arguments
              flags
              (lambda (option name value . rest)
                (error "Unrecognized option" name)
+               ;; Unix errno code for: "Invalid argument"
                (exit 22))
              no-op)
   (for-each
@@ -46,7 +62,11 @@
   (for-each update software-to-update-only)
   (exit 0))
 
-;;; The string we display when using the -h/--help flag.
+;;; The string we display when using the -h/--help flag.  This is an
+;;; example of here-strings in scsh.  More information available here:
+;;;
+;;;     http://scsh.net/docu/html/man-Z-H-2.html#node_sec_1.6.4
+;;;
 (define help-string #<<HELP
 Usage: update-local-software [OPTIONS]
 
