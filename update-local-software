@@ -317,4 +317,6 @@ HELP
 
 ;; Local Variables:
 ;; mode: scheme
+;; firestarter: "tup upd"
+;; firestarter-type: failure
 ;; End:
