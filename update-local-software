@@ -81,8 +81,8 @@ HELP
 ;;; arguments but does nothing.  All calls return `#t`.
 (define no-op (lambda (value . rest) #t))
 
-;;; A list of acceptable command-line flags.  See the comment block at
-;;; the head of this file for a description of each flag.
+;;; A list of acceptable command-line flags.  Run the script with the
+;;; -h/--help flag for information about these flags.
 (define flags
   (list (option '("update-only") #f #f no-op)
         (option '(#\h "help") #f #f
