@@ -73,6 +73,8 @@ Usage: update-local-software [OPTIONS]
 -v  --version     Shows the current version.
 --update-only     Updates the repositories for all software
                     but does not build or install anything.
+-s  --software    Updates, builds, and installs the software
+                    with the given name and then exits.
 HELP
 )
 
@@ -84,6 +86,20 @@ HELP
 ;;; -h/--help flag for information about these flags.
 (define flags
   (list (option '("update-only") #f #f no-op)
+        (option '(#\s "software") #t #f
+                (lambda (option name value . rest)
+                  (let ((match (find-software value)))
+                    (cond ((not (null-list? match))
+                           (let ((software (car match)))
+                             (display (string-append "\nProcessing " value "\n\n"))
+                             (update software)
+                             (build software)
+                             (install software)
+                             (exit 0)))
+                          (else
+                           (error "No known software" value)
+                           ;; Unix errno code for: "Invalid argument"
+                           (exit 22))))))
         (option '(#\h "help") #f #f
                 (lambda (option name value . rest)
                   (display help-string)
