@@ -40,7 +40,7 @@
 
 (define (main arguments)
   (cond ((running-as-root?)
-         (display "Error: Cannot run as root")
+         (error "Cannot run as root")
          ;; Unix errno code for: "Operation not permitted"
          (exit 1)))
   (args-fold command-line-arguments
