@@ -208,6 +208,7 @@ HELP
    ;; `install` functions.
    (let ((php (new-software "/home/eric/Software/PHP" "/opt/php"))
          (tup (new-software "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
+         (rock (new-software "/home/eric/Software/rock" ""))
          (tig (new-software "/home/eric/Software/Tig" "/usr/local")))
 
      ;; Building PHP requires giving some additional parameters to its
@@ -224,6 +225,11 @@ HELP
      (set-build-function!   tup (lambda (software) (run (tup upd))))
      (set-install-function! tup (lambda (software) #t))
 
+     ;; I have $PATH in my shell configured to find the `rock` binary,
+     ;; so there is no `install` step.
+     (set-build-function!   rock (run (make rescue)))
+     (set-install-function! rock no-op)
+
      ;; Running `configure` is not part of building Tig.  The usual
      ;; --prefix parameter instead is given to Make for both building and
      ;; installing the program.
@@ -236,6 +242,7 @@ HELP
 
      (list php
            tup
+           rock
            tig))
 
    ;; This rest of this list contains software which I only ever want
