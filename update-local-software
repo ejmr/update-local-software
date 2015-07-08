@@ -34,9 +34,12 @@
 ;;; Project Site:   https://github.com/ejmr/update-local-software
 ;;; License:        Public Domain
 ;;;
+;;; Finally, this program uses Semantic Versioning:
+;;;     http://semver.org/
+;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define version "1.0.0-beta")
+(define version "0.1.0")
 
 (define (main arguments)
   (cond ((running-as-root?)
