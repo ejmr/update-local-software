@@ -53,16 +53,25 @@
                ;; Unix errno code for: "Invalid argument"
                (exit 22))
              no-op)
-  (for-each
-   (lambda (software)
-     (display (string-append "\nProcessing " (get-directory software) "\n\n"))
-     (update software)
-     (if (not (member "--update-only" (command-line)))
-         (begin
-           (build software)
-           (install software))))
-   software-to-process)
+  (for-each process software-to-process)
   (exit 0))
+
+;;; This function "processes" the given :software record.  In this
+;;; context "processing" means to run the `update`, `build`, and
+;;; `install` functions for that software, along with displaying some
+;;; output about the current software being processed.
+;;;
+;;; This function will obey the `--update-only` command-line flag if
+;;; it was given to the script.
+;;;
+;;; It returns no value.
+(define (process software)
+  (display (string-append "\nProcessing " (get-directory software) "\n\n"))
+  (update software)
+  (if (not (member "--update-only" (command-line)))
+      (begin
+        (build software)
+        (install software))))
 
 ;;; The string we display when using the -h/--help flag.  This is an
 ;;; example of here-strings in scsh.  More information available here:
@@ -102,10 +111,7 @@ HELP
                   (let ((match (find-software value)))
                     (cond ((not (null-list? match))
                            (let ((software (car match)))
-                             (display (string-append "\nProcessing " value "\n\n"))
-                             (update software)
-                             (build software)
-                             (install software)
+                             (process software)
                              (exit 0)))
                           (else
                            (error "No known software" value)
