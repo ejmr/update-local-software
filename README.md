@@ -11,6 +11,17 @@ useful, but because I want to demonstrate how [Scheme][] is a viable
 programming language for shell scripting.
 
 
+## Additional Programs
+
+You do not need any of these programs to use this script, they simply
+help simplify some tasks.
+
+* [Exuberant Ctags][ctags] for building the `TAGS` file.
+* [Tup][] for automatically re-building `TAGS`.
+* [bumpversion][] for managing the version number.
+
+
+
 ## Resources
 
 [Collection of Links Related to Scheme Shell](https://www.reddit.com/r/scheme/comments/3as8yr/scsh_collection_of_links_related_to_the_scheme/)
@@ -24,3 +35,6 @@ This script belongs to the Public Domain.
 
 [scsh]: http://scsh.net/
 [Scheme]: http://www.schemers.org/
+[ctags]: http://ctags.sourceforge.net/
+[Tup]: http://gittup.org/tup/
+[bumpversion]: https://github.com/peritus/bumpversion
