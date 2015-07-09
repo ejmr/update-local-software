@@ -275,6 +275,7 @@ HELP
               "Guile"
               "Guix"
               "MAME"
+              "Pandoc"
               "Perl"
               "SQLite"))))
 
