@@ -233,7 +233,11 @@ HELP
 
      ;; I have $PATH in my shell configured to find the `rock` binary,
      ;; so there is no `install` step.
-     (set-build-function!   rock (run (make rescue)))
+     (set-build-function! rock
+      (lambda (software)
+        (let ((targets (makefile-targets software)))
+          (if (member "rescue" targets)
+              (run (make rescue))))))
      (set-install-function! rock no-op)
 
      ;; Running `configure` is not part of building Tig.  The usual
