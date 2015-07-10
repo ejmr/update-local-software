@@ -1,5 +1,5 @@
 #!/usr/local/bin/scsh \
--o srfi-1 -o srfi-2 -o srfi-9 -o srfi-13 -o srfi-16 -o srfi-37 -e main -s
+-o srfi-1 -o srfi-2 -o srfi-9 -o srfi-13 -o srfi-14 -o srfi-16 -o srfi-37 -e main -s
 !#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -62,16 +62,28 @@
 ;;; output about the current software being processed.
 ;;;
 ;;; This function will obey the `--update-only` command-line flag if
-;;; it was given to the script.
+;;; it was given to the script.  If the script was given the `-n` or
+;;; `--dry-run` flag then this function only displays output about
+;;; what it would do, but without performing any actions.
 ;;;
 ;;; It returns no value.
 (define (process software)
-  (display (string-append "\nProcessing " (get-directory software) "\n\n"))
-  (update software)
-  (if (not (member "--update-only" (command-line)))
-      (begin
-        (build software)
-        (install software))))
+  (let* ((directory (get-directory software))
+         (name (last (string-tokenize directory (char-set-complement (char-set #\/))))))
+    (display (string-append "\nProcessing " directory "\n\n"))
+    (cond ((or (member "-n" (command-line))
+               (member "--dry-run" (command-line)))
+           (display (string-append "Would update " name "\n"))
+           (if (not (member "--update-only" (command-line)))
+               (begin
+                 (display (string-append "Would build " name "\n"))
+                 (display (string-append "Would install " name "\n")))))
+          (else
+           (update software)
+           (if (not (member "--update-only" (command-line)))
+               (begin
+                 (build software)
+                 (install software)))))))
 
 ;;; The string we display when using the -h/--help flag.  This is an
 ;;; example of here-strings in scsh.  More information available here:
@@ -86,6 +98,9 @@ Usage: update-local-software [OPTIONS]
     
 -v, --version
     Shows the current version then exits.
+
+-n, --dry-run
+    Shows actions the script would perform but does nothing.
     
 --update-only
     Updates the repositories for all software but does not build
@@ -106,6 +121,7 @@ HELP
 ;;; -h/--help flag for information about these flags.
 (define flags
   (list (option '("update-only") #f #f no-op)
+        (option '(#\n "dry-run") #f #f no-op)
         (option '(#\s "software") #t #f
                 (lambda (option name value . rest)
                   (let ((match (find-software value)))
