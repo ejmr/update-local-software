@@ -1,5 +1,5 @@
 #!/usr/local/bin/scsh \
--o srfi-1 -o srfi-2 -o srfi-9 -o srfi-13 -o srfi-14 -o srfi-16 -o srfi-37 -e main -s
+-o sorting -o srfi-1 -o srfi-2 -o srfi-9 -o srfi-13 -o srfi-14 -o srfi-16 -o srfi-37 -e main -s
 !#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -98,6 +98,11 @@ Usage: update-local-software [OPTIONS]
 
 -n, --dry-run
     Shows actions the script would perform but does nothing.
+
+-l, --list
+    Lists the name of all software the script updates, builds,
+    installs, etc., and then exits.  All of the names are
+    acceptable values to the -s/--software flag.
     
 --update-only
     Updates the repositories for all software but does not build
@@ -119,6 +124,14 @@ HELP
 (define flags
   (list (option '("update-only") #f #f no-op)
         (option '(#\n "dry-run") #f #f no-op)
+        (option '(#\l "list") #f #f
+                (lambda (option name value . rest)
+                  (for-each
+                   (lambda (name)
+                     (display name)
+                     (display "\n"))
+                   (list-sort string-ci< (map get-name software-to-process)))
+                  (exit 0)))
         (option '(#\s "software") #t #f
                 (lambda (option name value . rest)
                   (let ((match (find-software value)))
