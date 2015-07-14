@@ -65,8 +65,8 @@
 ;;;
 ;;; It returns no value.
 (define (process software)
-  (let* ((directory (get-directory software))
-         (name (last (string-tokenize directory (char-set-complement (char-set #\/))))))
+  (let ((directory (get-directory software))
+        (name (get-name software)))
     (display (string-append "\nProcessing " directory "\n\n"))
     (cond ((or (member "-n" (command-line))
                (member "--dry-run" (command-line)))
@@ -192,6 +192,16 @@ HELP
   (update-function  get-update-function  set-update-function!)
   (build-function   get-build-function   set-build-function!)
   (install-function get-install-function set-install-function!))
+
+;;; This function takes a :software record and returns its name as a
+;;; string.  Giving this name to `find-software` will return the same
+;;; record, such that...
+;;;
+;;;     (eq? foo (find-software (get-name foo)))
+;;;
+;;; ...will always be true.
+(define (get-name software)
+  (file-name-nondirectory (get-directory software)))
 
 ;;; This function searches from `software-to-process` to find an
 ;;; instance of a :software record for the given software name.  The
