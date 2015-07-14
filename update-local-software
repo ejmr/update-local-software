@@ -48,10 +48,7 @@
          (exit 1)))
   (args-fold command-line-arguments
              flags
-             (lambda (option name value . rest)
-               (error "Unrecognized option" name)
-               ;; Unix errno code for: "Invalid argument"
-               (exit 22))
+             handle-unrecognized-option
              no-op)
   (for-each process software-to-process)
   (exit 0))
@@ -141,6 +138,13 @@ HELP
                 (lambda (option name value . rest)
                   (display version)
                   (exit 0)))))
+
+;;; The program calls this function for any unknown command-line
+;;; options it receives, i.e. anything not defined in `flags`.
+(define (handle-unrecognized-option option name value . rest)
+  (error "Unrecognized option" name)
+  ;; Unix errno code for: "Invalid argument"
+  (exit 22))
 
 ;;; Represents a single program to update.  Each instance has the
 ;;; following properties:
