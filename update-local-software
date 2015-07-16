@@ -428,16 +428,25 @@ HELP
 ;;; function attempts to build the software via `configure-and-make`.
 (define build (create-processor get-build-function configure-and-make))
 
+;;; Takes a :software record and runs the shell command
+;;;
+;;;     $ sudo make install
+;;;
+;;; inside that software's directory.  If the software has a Makefile
+;;; with the "install-docs" target then this function will also run
+;;; Make on that target.  This function is meant for use from within
+;;; the `install` function, which will guarantee that the shell
+;;; commands run in the correct directory.
+(define (sudo-make-install software)
+  (let ((targets (makefile-targets software)))
+    (run (sudo make install))
+    (if (member "install-docs" targets)
+        (run (sudo make install-docs)))))
+
 ;;; Installs software.  If the software has a procedure value for the
 ;;; `install-function` property then it will be called.  Otherwise
 ;;; this function runs 'sudo make install'.
-(define install
-  (create-processor get-install-function
-   (lambda (software)
-     (let ((targets (makefile-targets software)))
-       (run (sudo make install))
-       (if (member "install-docs" targets)
-           (run (sudo make install-docs)))))))
+(define install (create-processor get-install-function sudo-make-install))
 
 ;; Local Variables:
 ;; mode: scheme
