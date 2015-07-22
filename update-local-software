@@ -357,32 +357,6 @@ HELP
      (run (git checkout ,branch))
      (run (git merge --ff-only ,(string-append remote "/" branch))))))
 
-;;; This utility function creates a "processor", i.e. a function we
-;;; use to update, build, or install software.  Each :software record
-;;; may have custom behavior for these.  The first parameter of
-;;; `create-processor` must be the name of a function which possibly
-;;; returns that custom behavior for a :software record, e.g.
-;;;
-;;; 1. `get-update-function`
-;;; 2. `get-build-function`
-;;; 3. `get-install-function`
-;;;
-;;; The second parameter must be a function of one argument---it will
-;;; receive a :software record---which implements the default behavior
-;;; for the processor in the event that the record does not return a
-;;; function when we call `getter` on it.
-;;;
-;;; This function returns a function of one argument: a :software
-;;; record.  See the definitions of `update`, `build`, and `install`
-;;; for examples of using `create-processor`.
-(define (create-processor getter default-behavior)
-  (lambda (software)
-    (with-cwd (get-directory software)
-              (or (and-let* ((custom-behavior (getter software))
-                             ((procedure? custom-behavior))
-                             ((apply custom-behavior (list software)))))
-                  (apply default-behavior (list software))))))
-
 ;;; If the software is in a Git repository then this function will
 ;;; normally fetch updates from the 'origin' remote and merge them
 ;;; into the 'master' branch.
@@ -390,7 +364,12 @@ HELP
 ;;; However, if the software has the `update-function` property set
 ;;; then this function will call that instead of performing any of the
 ;;; actions described above.
-(define update (create-processor get-update-function git-update))
+(define (update software)
+  (with-cwd (get-directory software)
+   (or (and-let* ((update-function (get-update-function software))
+                  ((procedure? update-function))
+                  ((apply update-function (list software)))))
+       (git-update))))
 
 ;;; Does the software have a 'configure' script?
 (define (has-configure-script? software)
@@ -426,7 +405,12 @@ HELP
 ;;; Builds the software.  If the software has the property
 ;;; `build-function` then that will be called.  Otherwise this
 ;;; function attempts to build the software via `configure-and-make`.
-(define build (create-processor get-build-function configure-and-make))
+(define (build software)
+  (with-cwd (get-directory software)
+   (or (and-let* ((build-function (get-build-function software))
+                  ((procedure? build-function))
+                  ((apply build-function (list software)))))
+       (configure-and-make software))))
 
 ;;; Takes a :software record and runs the shell command
 ;;;
@@ -446,7 +430,12 @@ HELP
 ;;; Installs software.  If the software has a procedure value for the
 ;;; `install-function` property then it will be called.  Otherwise
 ;;; this function runs 'sudo make install'.
-(define install (create-processor get-install-function sudo-make-install))
+(define (install software)
+  (with-cwd (get-directory software)
+   (or (and-let* ((install-function (get-install-function software))
+                  ((procedure? install-function))
+                  ((apply install-function (list software)))))
+       (sudo-make-install software))))
 
 ;; Local Variables:
 ;; mode: scheme
