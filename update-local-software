@@ -162,32 +162,39 @@ HELP
 ;;; Represents a single program to update.  Each instance has the
 ;;; following properties:
 ;;;
-;;; * directory: The absolute path to the software.
+;;; REQUIRED
 ;;;
-;;; * install-prefix: The path prefix to use when installing the
-;;; program, e.g. the value to give to `./configure --prefix=...`
+;;; * name: The name of the software as a string.
 ;;;
-;;; * update-function: This property is optional.  If set it must be a
-;;; function which accepts one argument, the software record itself.
-;;; The function should run any commands necessary to fetch all
-;;; updates for that software, e.g. running `git fetch` on a remote
-;;; other than `origin`.
+;;; * directory: The absolute path to the software as a string.
 ;;;
-;;; * build-function: This property is optional.  If set it must be a
-;;; function which accepts one argument, which will be the software
-;;; record itself.  The function should run all commands necessary to
-;;; build the software.  The function does NOT need to update the
-;;; software, e.g. fetch updates from a Git repository.
+;;; * install-prefix: A string which is the path prefix to use when
+;;; installing the program, e.g. the value to give to `./configure
+;;; --prefix=...`
 ;;;
-;;; * install-function: Another optional property, and again if
-;;; provided it must be a function that accepts the software record as
-;;; its one argument.  The function should run any commands necessary
-;;; to install the software, under the assumption that the software
-;;; has already been updated and built.
+;;; OPTIONAL
 ;;;
-;;; Only the first property is mandatory.  Any properties that
-;;; represent a file-path MUST NOT end with a slash, because many
-;;; functions append one when working with directories.
+;;; * update-function: This must be a function which accepts one
+;;; argument, the software record itself.  The function should run any
+;;; commands necessary to fetch all updates for that software,
+;;; e.g. running `git fetch` on a remote other than `origin`.
+;;;
+;;; * build-function: This must be a function which accepts one
+;;; argument, which will be the software record itself.  The function
+;;; should run all commands necessary to build the software.  The
+;;; function does NOT need to update the software, e.g. fetch updates
+;;; from a Git repository.
+;;;
+;;; * install-function: This must be a function that accepts the
+;;; software record as its one argument.  The function should run any
+;;; commands necessary to install the software, under the assumption
+;;; that the software has already been updated and built.
+;;;
+;;; IMPORTANT NOTES
+;;;
+;;; Any properties that represent a file-path MUST NOT end with a
+;;; slash, because many functions append one when working with
+;;; directories.
 ;;;
 ;;; All of the optional `*-function` properties will be run in the
 ;;; context of
@@ -198,40 +205,28 @@ HELP
 ;;; those functions unless it needs to be different from the value of
 ;;; the software's `directory` property.
 (define-record-type :software
-  (new-software directory install-prefix)
+  (new-software name directory install-prefix)
   software?
-  (directory get-directory)
+  (name             get-name)
+  (directory        get-directory)
   (install-prefix   get-install-prefix)
   (update-function  get-update-function  set-update-function!)
   (build-function   get-build-function   set-build-function!)
   (install-function get-install-function set-install-function!))
 
-;;; This function takes a :software record and returns its name as a
-;;; string.  Giving this name to `find-software` will return the same
-;;; record, such that...
-;;;
-;;;     (eq? foo (find-software (get-name foo)))
-;;;
-;;; ...will always be true.
-(define (get-name software)
-  (file-name-nondirectory (get-directory software)))
-
 ;;; This function searches from `software-to-process` to find an
-;;; instance of a :software record for the given software name.  The
-;;; search looks for software where the given `name` parameter is a
-;;; suffix of that software's `directory` property; the search is
-;;; case-insensitive.  The function will return a list containing the
-;;; matching software or nothing.
+;;; instance of a :software record for the given software name,
+;;; performing case-insensitive comparisons.  The function will return
+;;; a list containing the matching software or nothing.
 (define (find-software name)
   (filter (lambda (software)
-            (string-suffix-ci? name (get-directory software)))
-          software-to-process))
+            (string-ci= name (get-name software)))))
 
 ;;; This is a utility for creating a :software record representing a
 ;;; program which I only want to update.  I.e. it has no-op's for its
 ;;; `build` and `install` functions.
-(define (new-software-to-update-only directory)
-  (let ((software (new-software directory "")))
+(define (new-software-to-update-only name directory)
+  (let ((software (new-software name directory "")))
     (set-build-function!   software no-op)
     (set-install-function! software no-op)
     software))
@@ -243,7 +238,8 @@ HELP
    ;; This is software which uses the default behavior of `update`,
    ;; `build`, and `install`.
    (map (lambda (name)
-          (new-software (string-append "/home/eric/Software/" name)
+          (new-software name
+                        (string-append "/home/eric/Software/" name)
                         "/usr/local"))
         (list "Emacs"
               "Fish"
@@ -255,10 +251,10 @@ HELP
    ;; Add software to update but which requires special steps that
    ;; differ from the default behavior of the `update`, `build`, and
    ;; `install` functions.
-   (let ((php (new-software "/home/eric/Software/PHP" "/opt/php"))
-         (tup (new-software "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
-         (rock (new-software "/home/eric/Software/rock" ""))
-         (tig (new-software "/home/eric/Software/Tig" "/usr/local")))
+   (let ((php (new-software "PHP" "/home/eric/Software/PHP" "/opt/php"))
+         (tup (new-software "Tup" "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
+         (rock (new-software "rock" "/home/eric/Software/rock" ""))
+         (tig (new-software "Tig" "/home/eric/Software/Tig" "/usr/local")))
 
      ;; Building PHP requires giving some additional parameters to its
      ;; configure script.
@@ -303,11 +299,11 @@ HELP
    ;; these programs.  I am only interested in keeping my copies of
    ;; their repositories up to date.
 
-   (list (new-software-to-update-only "/home/eric/Documents/Programming/Awesome"))
+   (list (new-software-to-update-only "Awesome" "/home/eric/Documents/Programming/Awesome"))
 
    ;; Hypatia is slightly different in that I want to always update the
    ;; 'develop' branch instead of 'master'.
-   (let ((hypatia (new-software-to-update-only "/home/eric/Projects/Hypatia")))
+   (let ((hypatia (new-software-to-update-only "Hypatia" "/home/eric/Projects/Hypatia")))
      (set-update-function! hypatia
       (lambda (software)
         (git-update "origin" "develop")))
@@ -316,7 +312,7 @@ HELP
    ;; The rest of the software I want to only update is in my
    ;; "/home/eric/Software" directory.
    (map (lambda (name)
-          (new-software-to-update-only
+          (new-software-to-update-only name
            (string-append "/home/eric/Software/" name)))
         (list "Conkeror"
               "Guile"
