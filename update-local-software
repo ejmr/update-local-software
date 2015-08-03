@@ -243,7 +243,6 @@ HELP
                         "/usr/local"))
         (list "Emacs"
               "Fish"
-              "Git"
               "LuaJIT"
               "scsh"
               "Solid"))
@@ -254,7 +253,13 @@ HELP
    (let ((php (new-software "PHP" "/home/eric/Software/PHP" "/opt/php"))
          (tup (new-software "Tup" "/home/eric/Software/Tup" "/home/eric/Software/Tup"))
          (rock (new-software "rock" "/home/eric/Software/rock" ""))
+         (git (new-software "Git" "/home/eric/Software/Git" "/usr/local"))
          (tig (new-software "Tig" "/home/eric/Software/Tig" "/usr/local")))
+
+     ;; Install documentation when installing Git.
+     (set-install-function! git
+      (lambda (software)
+        (run (sudo make install install-doc install-html))))
 
      ;; Building PHP requires giving some additional parameters to its
      ;; configure script.
@@ -292,6 +297,7 @@ HELP
      (list php
            tup
            rock
+           git
            tig))
 
    ;; This rest of this list contains software which I only ever want
