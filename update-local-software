@@ -396,7 +396,10 @@ HELP
 ;;; If the Makefile has a 'docs' target then this function runs it.
 (define (configure-and-make software)
   (if (has-configure-script? software)
-      (run (sh configure --prefix=,(get-install-prefix software))))
+      (let ((prefix (get-install-prefix software)))
+        (if prefix
+            (run (sh configure --prefix=,prefix))
+            (run (sh configure)))))
   (if (has-makefile? software)
       (begin
         (run (make))
