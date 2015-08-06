@@ -220,7 +220,8 @@ HELP
 ;;; a list containing the matching software or nothing.
 (define (find-software name)
   (filter (lambda (software)
-            (string-ci= name (get-name software)))))
+            (string-ci= name (get-name software)))
+          software-to-process))
 
 ;;; This is a utility for creating a :software record representing a
 ;;; program which I only want to update.  I.e. it has no-op's for its
