@@ -232,6 +232,11 @@ HELP
     (set-install-function! software no-op)
     software))
 
+;;; This utility function creates a :software record representing a
+;;; "program" that is actually only a Git repository of documentation.
+(define (new-documentation-software name)
+  (new-software-to-update-only name (string-append "/home/eric/Documents/Programming/" name)))
+
 ;;; A list of the software I want this script to process.
 (define software-to-process
   (append
@@ -301,12 +306,14 @@ HELP
            git
            tig))
 
-   ;; This rest of this list contains software which I only ever want
-   ;; to update.  That is, I never want to run `build` or `install` for
-   ;; these programs.  I am only interested in keeping my copies of
-   ;; their repositories up to date.
-
-   (list (new-software-to-update-only "Awesome" "/home/eric/Documents/Programming/Awesome"))
+   ;; These are "software" repositories which contain nothing but
+   ;; documentation, i.e. I only ever update them, and never build or
+   ;; install anything for them.
+   (list (new-documentation-software "Awesome")
+         (new-documentation-software "linux-insides")
+         (new-documentation-software "Conventions")
+         (new-documentation-software "git-tips")
+         (new-documentation-software "Self-Hosted"))
 
    ;; Hypatia is slightly different in that I want to always update the
    ;; 'develop' branch instead of 'master'.
