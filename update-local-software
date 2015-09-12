@@ -312,7 +312,10 @@ HELP
    (list (new-documentation-software "Awesome")
          (new-documentation-software "Assembly-Cheat")
          (new-documentation-software "linux-insides")
+         (new-documentation-software "Linux-Cheat")
          (new-documentation-software "Conventions")
+         (new-documentation-software "CPP-Cheat")
+         (new-documentation-software "GitHub-Games")
          (new-documentation-software "git-tips")
          (new-documentation-software "Self-Hosted"))
 
