@@ -317,6 +317,8 @@ HELP
          (new-documentation-software "CPP-Cheat")
          (new-documentation-software "GitHub-Games")
          (new-documentation-software "git-tips")
+         (new-documentation-software "Hello World")
+         (new-documentation-software "Opcodes")
          (new-documentation-software "Self-Hosted"))
 
    ;; Hypatia is slightly different in that I want to always update the
