@@ -310,6 +310,7 @@ HELP
    ;; documentation, i.e. I only ever update them, and never build or
    ;; install anything for them.
    (list (new-documentation-software "Awesome")
+         (new-documentation-software "Awesome LOVE2D")
          (new-documentation-software "Assembly-Cheat")
          (new-documentation-software "linux-insides")
          (new-documentation-software "Linux-Cheat")
