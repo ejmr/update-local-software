@@ -272,7 +272,11 @@ HELP
      (set-build-function! php
       (lambda (software)
         (run (sh configure --prefix=,(get-install-prefix software)
-                           --with-openssl))))
+                           --with-openssl
+                           --with-libxml2
+                           --with-xsl
+                           --enable-phpdbg
+                           --enable-zip))))
 
      ;; Tup can build itself by running 'tup upd' after fetching the
      ;; source via Git.  The custom installation function does nothing
